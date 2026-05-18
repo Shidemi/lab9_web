@@ -1,42 +1,156 @@
 const express = require('express');
 const http = require('http');
+const socketIO = require('socket.io');
+const path = require('path');
 const fs = require('fs');
-const { Server } = require('socket.io');
 
 const app = express();
-
 const server = http.createServer(app);
+const io = socketIO(server);
 
-const io = new Server(server);
-
+app.use(express.json());
 app.use(express.static('public'));
 
-let users = [];
+const DB_FILE = 'db.json';
 
-let gameStarted = false;
+function readData() {
 
-let secretNumber = 0;
+    try {
 
-function startGame() {
+        const data =
+            fs.readFileSync(DB_FILE);
 
-    secretNumber =
-        Math.floor(Math.random() * 100) + 1;
+        return JSON.parse(data);
 
-    gameStarted = true;
+    } catch {
 
-    console.log(secretNumber);
+        return [];
+
+    }
 
 }
 
+function writeData(data) {
+
+    fs.writeFileSync(
+        DB_FILE,
+        JSON.stringify(data, null, 2)
+    );
+
+}
+
+app.get('/', (req, res) => {
+
+    res.sendFile(
+        path.join(__dirname,
+        'public/index.html')
+    );
+
+});
+
+app.get('/chat', (req, res) => {
+
+    res.sendFile(
+        path.join(__dirname,
+        'public/chat.html')
+    );
+
+});
+
+app.get('/items', (req, res) => {
+
+    const items = readData();
+
+    res.json(items);
+
+});
+
+app.post('/items', (req, res) => {
+
+    const items = readData();
+
+    const item = {
+
+        id: Date.now(),
+        name: req.body.name,
+        description: req.body.description,
+        rate: req.body.rate
+
+    };
+
+    items.push(item);
+
+    writeData(items);
+
+    res.json(item);
+
+});
+
+app.put('/items/:id', (req, res) => {
+
+    const items = readData();
+
+    const id = Number(req.params.id);
+
+    const item = items.find(
+        i => i.id === id
+    );
+
+    if (!item) {
+
+        return res
+        .status(404)
+        .json({ error: 'not found' });
+
+    }
+
+    item.name = req.body.name;
+    item.description =
+        req.body.description;
+    item.rate = req.body.rate;
+
+    writeData(items);
+
+    res.json(item);
+
+});
+
+app.delete('/items/:id', (req, res) => {
+
+    let items = readData();
+
+    const id = Number(req.params.id);
+
+    items = items.filter(
+        i => i.id !== id
+    );
+
+    writeData(items);
+
+    res.json({
+        success: true
+    });
+
+});
+
+let users = [];
+
+let secretNumber = Math.floor(
+    Math.random() * 100
+) + 1;
+
+let gameStarted = false;
+
 io.on('connection', (socket) => {
 
-    socket.on('join', (username, callback) => {
+    socket.on('join', (username) => {
 
         if (users.includes(username)) {
 
-            callback({
-                success:false
-            });
+            socket.emit(
+                'nameError',
+                'Имя занято'
+            );
 
             return;
 
@@ -46,14 +160,10 @@ io.on('connection', (socket) => {
 
         users.push(username);
 
-        callback({
-            success:true
-        });
-
         io.emit('users', users);
 
         io.emit(
-            'system',
+            'message',
             `👤 ${username} подключился`
         );
 
@@ -61,49 +171,58 @@ io.on('connection', (socket) => {
 
     socket.on('startGame', () => {
 
-        startGame();
+        secretNumber =
+            Math.floor(Math.random() * 100) + 1;
+
+        gameStarted = true;
 
         io.emit(
-            'system',
+            'message',
             '🎮 Игра началась! Угадайте число от 1 до 100'
         );
 
     });
 
-    socket.on('message', (msg) => {
+    socket.on('message', (data) => {
 
-        io.emit('chat', {
-            user: socket.username,
-            text: msg
-        });
+        const username =
+            data.username;
+
+        const msg =
+            data.text;
+
+        io.emit(
+            'message',
+            `${username}: ${msg}`
+        );
 
         if (!gameStarted) return;
 
-        let num = parseInt(msg);
+        const number = parseInt(msg);
 
-        if (isNaN(num)) return;
+        if (isNaN(number)) return;
 
-        if (num < secretNumber) {
+        if (number < secretNumber) {
 
             io.emit(
-                'system',
-                `📈 ${socket.username}: число больше`
+                'message',
+                `📈 ${username}: число больше`
             );
 
-        }
-        else if (num > secretNumber) {
+        } else if (
+            number > secretNumber
+        ) {
 
             io.emit(
-                'system',
-                `📉 ${socket.username}: число меньше`
+                'message',
+                `📉 ${username}: число меньше`
             );
 
-        }
-        else {
+        } else {
 
             io.emit(
-                'system',
-                `🏆 ${socket.username} угадал число ${secretNumber}`
+                'message',
+                `🏆 ${username} угадал число ${secretNumber}`
             );
 
             gameStarted = false;
@@ -120,10 +239,14 @@ io.on('connection', (socket) => {
 
         io.emit('users', users);
 
-        io.emit(
-            'system',
-            `❌ ${socket.username} вышел`
-        );
+        if (socket.username) {
+
+            io.emit(
+                'message',
+                `❌ ${socket.username} вышел`
+            );
+
+        }
 
     });
 

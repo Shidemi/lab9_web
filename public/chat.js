@@ -1,16 +1,20 @@
 const socket = io();
 
 let username =
-    localStorage.getItem('chatUsername');
+    localStorage.getItem(
+        'chatUsername'
+    );
 
-if(!username){
+if (!username) {
 
-    while(true){
+    while (true) {
 
         username =
-            prompt("Введите имя");
+            prompt(
+                'Введите имя'
+            );
 
-        if(!username) continue;
+        if (!username) continue;
 
         localStorage.setItem(
             'chatUsername',
@@ -23,83 +27,32 @@ if(!username){
 
 }
 
+socket.emit('join', username);
+
+socket.on('nameError', () => {
+
+    localStorage.removeItem(
+        'chatUsername'
+    );
+
+    location.reload();
+
+});
+
 const input =
-    document.getElementById('msg');
+    document.getElementById('input');
 
-input.addEventListener('keydown', function(e){
+const messages =
+    document.getElementById('messages');
 
-    if(e.key === 'Enter'){
+function addMessage(text) {
 
-        sendMessage();
-
-    }
-
-});
-
-function sendMessage() {
-
-    if (input.value.trim() === '')
-        return;
-
-    socket.emit(
-        'message',
-        input.value
-    );
-
-    input.value = '';
-
-}
-
-function startGame() {
-
-    socket.emit('startGame');
-
-}
-
-socket.on('chat', (msg) => {
-
-    addMessage(
-        `<b>${msg.user}:</b> ${msg.text}`,
-        'chat-message'
-    );
-
-});
-
-socket.on('system', (text) => {
-
-    addMessage(
-        text,
-        'system-message'
-    );
-
-});
-
-socket.on('users', (users) => {
-
-    let html = '';
-
-    users.forEach(user => {
-
-        html += `<li>${user}</li>`;
-
-    });
-
-    document.getElementById('users').innerHTML =
-        html;
-
-});
-
-function addMessage(text, className) {
-
-    let div =
+    const div =
         document.createElement('div');
 
-    div.className = className;
+    div.className = 'message';
 
-    div.innerHTML = text;
-
-    const messages =
-        document.getElementById('messages');
+    div.textContent = text;
 
     messages.appendChild(div);
 
@@ -107,3 +60,65 @@ function addMessage(text, className) {
         messages.scrollHeight;
 
 }
+
+socket.on('message', (msg) => {
+
+    addMessage(msg);
+
+});
+
+socket.on('users', (users) => {
+
+    const usersList =
+        document.getElementById('users');
+
+    usersList.innerHTML = '';
+
+    users.forEach(user => {
+
+        usersList.innerHTML += `
+        <li>${user}</li>
+        `;
+
+    });
+
+});
+
+function sendMessage() {
+
+    if (!input.value) return;
+
+    socket.emit('message', {
+
+        username: username,
+        text: input.value
+
+    });
+
+    input.value = '';
+
+}
+
+input.addEventListener(
+'keydown',
+(e) => {
+
+    if (e.key === 'Enter') {
+
+        sendMessage();
+
+    }
+
+});
+
+document
+.getElementById('sendBtn')
+.onclick = sendMessage;
+
+document
+.getElementById('startBtn')
+.onclick = () => {
+
+    socket.emit('startGame');
+
+};

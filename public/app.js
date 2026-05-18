@@ -1,53 +1,61 @@
-document
-.getElementById('loadBtn')
-.addEventListener('click', loadTaxes);
-
-async function loadTaxes() {
+async function loadItems() {
 
     try {
 
-        let response =
+        const response =
             await fetch('/items');
 
-        let data =
+        const items =
             await response.json();
 
-        let html = `
-        <table>
+        const list =
+            document.getElementById('list');
 
-        <tr>
-            <th>ID</th>
-            <th>Налог</th>
-            <th>Описание</th>
-            <th>Ставка</th>
-        </tr>
-        `;
+        list.innerHTML = '';
 
-        data.forEach(item => {
+        items.forEach(item => {
 
-            html += `
-            <tr>
-                <td>${item.id}</td>
-                <td>${item.name}</td>
-                <td>${item.description}</td>
-                <td>${item.rate}</td>
-            </tr>
+            list.innerHTML += `
+            <div class="card">
+                <h3>${item.name}</h3>
+
+                <p>
+                    ${item.description}
+                </p>
+
+                <p>
+                    Ставка:
+                    ${item.rate}
+                </p>
+
+                <button onclick="deleteItem(${item.id})">
+                    Удалить
+                </button>
+            </div>
             `;
 
         });
 
-        html += `</table>`;
+    } catch {
 
-        document.getElementById('taxes').innerHTML =
-            html;
-
-    }
-    catch(err) {
-
-        alert("Ошибка загрузки данных");
-
-        console.log(err);
+        alert(
+            'Ошибка загрузки данных'
+        );
 
     }
 
 }
+
+async function deleteItem(id) {
+
+    await fetch(`/items/${id}`, {
+
+        method: 'DELETE'
+
+    });
+
+    loadItems();
+
+}
+
+window.onload = loadItems;
