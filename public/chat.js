@@ -1,58 +1,38 @@
 const socket = io();
 
-let username =
-    localStorage.getItem(
-        'chatUsername'
-    );
+let username = localStorage.getItem('chatName');
 
-if (!username) {
+while (!username) {
 
-    while (true) {
-
-        username =
-            prompt('Введите имя');
-
-        if (!username) continue;
-
-        localStorage.setItem(
-            'chatUsername',
-            username
-        );
-
-        break;
-
-    }
+    username = prompt('Введите имя');
 
 }
+
+localStorage.setItem(
+    'chatName',
+    username
+);
 
 socket.emit('join', username);
 
 socket.on('nameError', () => {
 
-    alert('Имя уже занято');
+    alert('Имя занято');
 
-    localStorage.removeItem(
-        'chatUsername'
-    );
+    localStorage.removeItem('chatName');
 
     location.reload();
 
 });
 
 const messages =
-    document.getElementById(
-        'messages'
-    );
+    document.getElementById('messages');
 
 const users =
-    document.getElementById(
-        'users'
-    );
+    document.getElementById('users');
 
 const input =
-    document.getElementById(
-        'input'
-    );
+    document.getElementById('input');
 
 function addMessage(text) {
 

@@ -3,60 +3,56 @@
 <head>
 <meta charset="UTF-8">
 <title>Чат</title>
-
 <link rel="stylesheet" href="style.css">
-
 </head>
 
 <body>
 
 <div class="chat-page">
 
-<div class="top-panel">
+    <div class="sidebar">
 
-<h1>🎮 Чат "Угадай число"</h1>
+        <h2>Пользователи</h2>
 
-<button onclick="startGame()">
-Начать игру
-</button>
+        <ul id="users"></ul>
 
-</div>
+    </div>
 
-<div class="chat-layout">
+    <div class="chat-container">
 
-<div class="users-panel">
+        <div class="chat-top">
 
-<h2>Пользователи</h2>
+            <h1>
+                🎮 Чат "Угадай число"
+            </h1>
 
-<ul id="users"></ul>
+            <button id="startBtn">
+                Начать игру
+            </button>
 
-</div>
+        </div>
 
-<div class="chat-panel">
+        <div id="messages"></div>
 
-<div id="messages"></div>
+        <div class="bottom-panel">
 
-<div class="send-panel">
+            <input
+                id="input"
+                type="text"
+                placeholder="Введите сообщение"
+            >
 
-<input
-id="msg"
-placeholder="Введите сообщение или число"
->
+            <button id="sendBtn">
+                Отправить
+            </button>
 
-<button onclick="sendMessage()">
-Отправить
-</button>
+        </div>
 
-</div>
-
-</div>
-
-</div>
+    </div>
 
 </div>
 
 <script src="/socket.io/socket.io.js"></script>
-
 <script src="chat.js"></script>
 
 </body>
