@@ -11,18 +11,24 @@ const io = socketIO(server);
 app.use(express.json());
 app.use(express.static('public'));
 
-const DB_FILE = 'db.json';
+const DB_FILE = path.join(__dirname, 'db.json');
 
-function readData() {
+function readItems() {
 
     try {
 
+        if (!fs.existsSync(DB_FILE)) {
+            fs.writeFileSync(DB_FILE, '[]');
+        }
+
         const data =
-            fs.readFileSync(DB_FILE);
+            fs.readFileSync(DB_FILE, 'utf8');
 
         return JSON.parse(data);
 
-    } catch {
+    } catch (e) {
+
+        console.log(e);
 
         return [];
 
@@ -30,11 +36,11 @@ function readData() {
 
 }
 
-function writeData(data) {
+function saveItems(items) {
 
     fs.writeFileSync(
         DB_FILE,
-        JSON.stringify(data, null, 2)
+        JSON.stringify(items, null, 2)
     );
 
 }
@@ -59,7 +65,7 @@ app.get('/chat', (req, res) => {
 
 app.get('/items', (req, res) => {
 
-    const items = readData();
+    const items = readItems();
 
     res.json(items);
 
@@ -67,65 +73,41 @@ app.get('/items', (req, res) => {
 
 app.post('/items', (req, res) => {
 
-    const items = readData();
+    const items = readItems();
 
-    const item = {
+    const newItem = {
 
         id: Date.now(),
+
         name: req.body.name,
-        description: req.body.description,
+
+        description:
+            req.body.description,
+
         rate: req.body.rate
 
     };
 
-    items.push(item);
+    items.push(newItem);
 
-    writeData(items);
+    saveItems(items);
 
-    res.json(item);
-
-});
-
-app.put('/items/:id', (req, res) => {
-
-    const items = readData();
-
-    const id = Number(req.params.id);
-
-    const item = items.find(
-        i => i.id === id
-    );
-
-    if (!item) {
-
-        return res
-        .status(404)
-        .json({ error: 'not found' });
-
-    }
-
-    item.name = req.body.name;
-    item.description =
-        req.body.description;
-    item.rate = req.body.rate;
-
-    writeData(items);
-
-    res.json(item);
+    res.json(newItem);
 
 });
 
 app.delete('/items/:id', (req, res) => {
 
-    let items = readData();
+    const id =
+        Number(req.params.id);
 
-    const id = Number(req.params.id);
+    let items = readItems();
 
     items = items.filter(
-        i => i.id !== id
+        item => item.id !== id
     );
 
-    writeData(items);
+    saveItems(items);
 
     res.json({
         success: true
@@ -135,11 +117,9 @@ app.delete('/items/:id', (req, res) => {
 
 let users = [];
 
-let secretNumber = Math.floor(
-    Math.random() * 100
-) + 1;
-
 let gameStarted = false;
+
+let secretNumber = 0;
 
 io.on('connection', (socket) => {
 
@@ -148,8 +128,7 @@ io.on('connection', (socket) => {
         if (users.includes(username)) {
 
             socket.emit(
-                'nameError',
-                'Имя занято'
+                'nameError'
             );
 
             return;
@@ -171,10 +150,12 @@ io.on('connection', (socket) => {
 
     socket.on('startGame', () => {
 
-        secretNumber =
-            Math.floor(Math.random() * 100) + 1;
-
         gameStarted = true;
+
+        secretNumber =
+            Math.floor(
+                Math.random() * 100
+            ) + 1;
 
         io.emit(
             'message',
@@ -185,20 +166,25 @@ io.on('connection', (socket) => {
 
     socket.on('message', (data) => {
 
+        if (!data) return;
+
         const username =
             data.username;
 
-        const msg =
+        const text =
             data.text;
+
+        if (!username || !text) return;
 
         io.emit(
             'message',
-            `${username}: ${msg}`
+            `${username}: ${text}`
         );
 
         if (!gameStarted) return;
 
-        const number = parseInt(msg);
+        const number =
+            parseInt(text);
 
         if (isNaN(number)) return;
 
@@ -233,9 +219,11 @@ io.on('connection', (socket) => {
 
     socket.on('disconnect', () => {
 
-        users = users.filter(
-            u => u !== socket.username
-        );
+        users =
+            users.filter(
+                user =>
+                user !== socket.username
+            );
 
         io.emit('users', users);
 
@@ -258,7 +246,7 @@ const PORT =
 server.listen(PORT, () => {
 
     console.log(
-        `Server started: ${PORT}`
+        `Server started on ${PORT}`
     );
 
 });

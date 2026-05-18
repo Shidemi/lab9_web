@@ -10,9 +10,7 @@ if (!username) {
     while (true) {
 
         username =
-            prompt(
-                'Введите имя'
-            );
+            prompt('Введите имя');
 
         if (!username) continue;
 
@@ -31,6 +29,8 @@ socket.emit('join', username);
 
 socket.on('nameError', () => {
 
+    alert('Имя уже занято');
+
     localStorage.removeItem(
         'chatUsername'
     );
@@ -39,11 +39,20 @@ socket.on('nameError', () => {
 
 });
 
-const input =
-    document.getElementById('input');
-
 const messages =
-    document.getElementById('messages');
+    document.getElementById(
+        'messages'
+    );
+
+const users =
+    document.getElementById(
+        'users'
+    );
+
+const input =
+    document.getElementById(
+        'input'
+    );
 
 function addMessage(text) {
 
@@ -67,18 +76,18 @@ socket.on('message', (msg) => {
 
 });
 
-socket.on('users', (users) => {
+socket.on('users', (list) => {
 
-    const usersList =
-        document.getElementById('users');
+    users.innerHTML = '';
 
-    usersList.innerHTML = '';
+    list.forEach(user => {
 
-    users.forEach(user => {
+        const li =
+            document.createElement('li');
 
-        usersList.innerHTML += `
-        <li>${user}</li>
-        `;
+        li.textContent = user;
+
+        users.appendChild(li);
 
     });
 
@@ -86,18 +95,26 @@ socket.on('users', (users) => {
 
 function sendMessage() {
 
-    if (!input.value) return;
+    const text =
+        input.value.trim();
+
+    if (!text) return;
 
     socket.emit('message', {
 
         username: username,
-        text: input.value
+
+        text: text
 
     });
 
     input.value = '';
 
 }
+
+document
+.getElementById('sendBtn')
+.onclick = sendMessage;
 
 input.addEventListener(
 'keydown',
@@ -110,10 +127,6 @@ input.addEventListener(
     }
 
 });
-
-document
-.getElementById('sendBtn')
-.onclick = sendMessage;
 
 document
 .getElementById('startBtn')

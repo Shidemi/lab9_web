@@ -16,7 +16,8 @@ async function loadItems() {
         items.forEach(item => {
 
             list.innerHTML += `
-            <div class="card">
+            <div class="tax-card">
+
                 <h3>${item.name}</h3>
 
                 <p>
@@ -28,15 +29,21 @@ async function loadItems() {
                     ${item.rate}
                 </p>
 
-                <button onclick="deleteItem(${item.id})">
+                <button
+                onclick="deleteItem(${item.id})">
+
                     Удалить
+
                 </button>
+
             </div>
             `;
 
         });
 
-    } catch {
+    } catch (e) {
+
+        console.log(e);
 
         alert(
             'Ошибка загрузки данных'
